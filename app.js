@@ -7,7 +7,8 @@ const port = 2000;
 
 const http = require('http');
 const hostname = `localhost`;
-
+//use middleware 
+app.use(express.json());
 
 
 //db connect
@@ -27,10 +28,20 @@ connectToDb((err) => {
 
 //route get handler
 app.get('/meals', (req, res) => {
+    // paginations
+
+    const page = req.query.page || 0;
+    const pageLimit = 2;
+
+
+
+
     let eachItem = [];
 
     db.collection('meals')
-        .find({ 'title': 'dessert' })
+        .find()
+        .skip(page * pageLimit)
+        .limit(pageLimit)
         .forEach(element => {
             eachItem.push(element);
         })
@@ -41,8 +52,6 @@ app.get('/meals', (req, res) => {
             res.status(500).json({ error: "Couldnt find the object" })
         });
 
-    // res.send(eachItem);
-    //  res.json({ message: 'Welcome to the api' });
 });
 
 
@@ -65,4 +74,61 @@ app.get('/meals/:id', (req, res) => {
 
 
 });
+
+//route post handler
+
+app.post('/meals', (req, res) => {
+    //receives json data
+    const meal = req.body
+    db.collection('meals')
+        .insertOne(meal)
+        .then(result => {
+            res.status(200).json(result);
+        })
+        .catch(() => {
+            res.status(500).json({ error: "coundlnt post" });
+        });
+
+});
+
+//route params delete
+app.delete('/meals/:id', (req, res) => {
+
+    if (ObjectId.isValid(req.params.id)) {
+        //res.status()
+
+        db.collection('meals')
+            .deleteOne({ _id: new ObjectId(req.params.id) })
+            .then(results => {
+                res.status(200).json(results)
+            })
+            .catch(() => {
+                res.status(500).json({ error: "Couldnt find the object" })
+            })
+    } else {
+        res.status(500).json({ error: 'Not a valid doc id' })
+    }
+
+});
+
+//route params upadate
+app.patch('/meals/:id', (req, res) => {
+    const update = req.body;
+
+    if (ObjectId.isValid(req.params.id)) {
+        db.collection('meals')
+            .updateOne({ _id: new ObjectId(req.params.id) }, { $set: update })
+            .then((results) => {
+                res.status(200).json(results)
+            })
+            .catch(() => {
+                res.status(500).json({ error: "Couldnt find the object" })
+            });
+    } else {
+        res.status(500).json({ error: 'Not a valid id' })
+    }
+
+})
+
+
 
